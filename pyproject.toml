@@ -1,0 +1,23 @@
+[project]
+name = "mcp-latex-docs"
+version = "0.1.0"
+description = "MCP server for semantic search over LaTeX math documents"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "chardet>=7.3.0",
+    "chromadb>=1.5.5",
+    "mcp>=1.26.0",
+    "pylatexenc>=2.10",
+    "sentence-transformers>=5.3.0",
+    "torch>=2.11.0",
+    "transformers>=5.3.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=9.0.2",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
