@@ -1,0 +1,91 @@
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\begin{document}
+
+\section{Continuity and Uniform Continuity}
+
+\begin{definition}\label{def:continuous}
+A function $f : \mathbb{R} \to \mathbb{R}$ is \emph{continuous} at a point
+$a \in \mathbb{R}$ if for every $\varepsilon > 0$ there exists $\delta > 0$
+such that $|f(x) - f(a)| < \varepsilon$ whenever $|x - a| < \delta$.
+\end{definition}
+
+\begin{definition}\label{def:uniform-continuous}
+A function $f : \mathbb{R} \to \mathbb{R}$ is \emph{uniformly continuous}
+if for every $\varepsilon > 0$ there exists $\delta > 0$ such that
+$|f(x) - f(y)| < \varepsilon$ whenever $|x - y| < \delta$,
+for all $x, y \in \mathbb{R}$.
+\end{definition}
+
+\begin{theorem}\label{thm:uniform-implies-continuous}
+If $f$ is uniformly continuous on $\mathbb{R}$, then $f$ is continuous at
+every point $a \in \mathbb{R}$.
+\end{theorem}
+
+\begin{proof}
+Let $\varepsilon > 0$. Since $f$ is uniformly continuous, there exists
+$\delta > 0$ such that $|f(x) - f(y)| < \varepsilon$ whenever $|x - y| < \delta$.
+In particular, fixing $y = a$, we get $|f(x) - f(a)| < \varepsilon$
+whenever $|x - a| < \delta$.
+\end{proof}
+
+\section{Compactness}
+
+\begin{definition}\label{def:compact}
+A subset $K \subseteq \mathbb{R}^n$ is \emph{compact} if every open cover
+of $K$ has a finite subcover.
+\end{definition}
+
+\begin{theorem}\label{thm:heine-borel}
+A subset $K \subseteq \mathbb{R}^n$ is compact if and only if it is
+closed and bounded.
+\end{theorem}
+
+\begin{proof}
+This is the Heine--Borel theorem. The proof proceeds by showing that
+closed and bounded subsets of $\mathbb{R}^n$ satisfy the finite subcover
+property using the completeness of $\mathbb{R}$.
+\end{proof}
+
+\begin{corollary}\label{cor:compact-continuous}
+A continuous function on a compact set attains its maximum and minimum.
+\end{corollary}
+
+\begin{lemma}\label{lem:uniform-on-compact}
+A continuous function $f$ on a compact set $K$ is uniformly continuous.
+\end{lemma}
+
+\section{Integration}
+
+\begin{definition}\label{def:riemann-integral}
+The \emph{Riemann integral} of $f$ over $[a, b]$ is defined as
+\[
+    \int_a^b f(x)\, dx = \lim_{\|\mathcal{P}\| \to 0} \sum_{i=1}^{n} f(\xi_i)\,\Delta x_i
+\]
+where $\mathcal{P}$ is a partition of $[a, b]$ and $\xi_i$ are sample points.
+\end{definition}
+
+\begin{theorem}\label{thm:ftc}
+Let $f$ be continuous on $[a, b]$ and let $F(x) = \int_a^x f(t)\, dt$.
+Then $F$ is differentiable and $F'(x) = f(x)$ for all $x \in [a, b]$.
+\end{theorem}
+
+\begin{remark}
+This is the Fundamental Theorem of Calculus. It connects differentiation
+and integration as inverse operations.
+\end{remark}
+
+\end{document}
