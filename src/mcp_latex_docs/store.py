@@ -100,19 +100,26 @@ class Store:
     # ------------------------------------------------------------------
 
     def upsert(self, blocks: list[Block], embeddings: list[BlockEmbedding]) -> None:
-        """Store blocks and their embeddings into both collections."""
+        """Store blocks and their embeddings into both collections.
+
+        Embeddings whose IDs end in ``::part<N>`` are sub-blocks produced by
+        splitting a block that exceeded mathberta's token limit; their
+        metadata is taken from the parent block.
+        """
         if not blocks:
             return
 
-        emb_by_id = {e.block_id: e for e in embeddings}
+        block_by_id = {b.block_id: b for b in blocks}
 
         ids, docs, metas, text_vecs, math_vecs = [], [], [], [], []
-        for b in blocks:
-            emb = emb_by_id.get(b.block_id)
-            if emb is None:
+        for emb in embeddings:
+            # Strip ``::partN`` suffix to find the parent Block for metadata.
+            parent_id = re.sub(r"::part\d+$", "", emb.block_id)
+            b = block_by_id.get(parent_id)
+            if b is None:
                 continue
-            ids.append(b.block_id)
-            docs.append(b.text)
+            ids.append(emb.block_id)
+            docs.append(emb.text if emb.text else b.text)
             metas.append({
                 "env_type":    b.env_type,
                 "label":       b.label,
@@ -200,13 +207,19 @@ class Store:
         for bid, doc, meta, dist in zip(ids, docs, metas, distances):
             # cosine distance in [0,2]; score = 1 - dist ∈ [-1, 1]
             score = 1.0 - dist
-            if bid not in acc:
-                acc[bid] = {
+            # Map sub-block IDs (``parent::partN``) back to their parent so
+            # that all parts of the same block compete and the best wins.
+            canonical_id = re.sub(r"::part\d+$", "", bid)
+            if canonical_id not in acc:
+                acc[canonical_id] = {
                     "doc":    doc,
                     "meta":   meta,
                     "scores": {},
                 }
-            acc[bid]["scores"][view_name] = score
+            prev = acc[canonical_id]["scores"].get(view_name, -float("inf"))
+            if score > prev:
+                acc[canonical_id]["doc"] = doc
+                acc[canonical_id]["scores"][view_name] = score
 
     # ------------------------------------------------------------------
     # Label lookup
@@ -256,19 +269,21 @@ class Store:
             return []
 
         folder_files:  dict[str, set[str]] = {}
-        folder_blocks: dict[str, int]      = {}
+        folder_blocks: dict[str, set[str]] = {}   # unique parent block IDs
 
-        for meta in res["metadatas"]:
-            fld  = meta.get("folder", "")
+        for doc_id, meta in zip(res["ids"], res["metadatas"]):
+            fld   = meta.get("folder", "")
             ffile = meta.get("source_file", "")
+            # Strip ``::partN`` suffix to count logical blocks, not sub-blocks.
+            parent_id = re.sub(r"::part\d+$", "", doc_id)
             folder_files.setdefault(fld, set()).add(ffile)
-            folder_blocks[fld] = folder_blocks.get(fld, 0) + 1
+            folder_blocks.setdefault(fld, set()).add(parent_id)
 
         return [
             FolderInfo(
                 folder=fld,
                 file_count=len(folder_files[fld]),
-                block_count=folder_blocks[fld],
+                block_count=len(folder_blocks[fld]),
             )
             for fld in sorted(folder_files)
         ]
