@@ -1,12 +1,12 @@
 # mcp-latex-docs
 
-A local [MCP](https://modelcontextprotocol.io/) server for the [Perplexity Mac app](https://perplexity.ai) that turns your LaTeX math documents into a searchable semantic database.
+A local [MCP](https://modelcontextprotocol.io/) server that turns your LaTeX math documents into a searchable semantic database.  Works with any MCP-compatible client — tested with the [Perplexity Mac app](https://perplexity.ai) and [GitHub Copilot in VS Code](https://code.visualstudio.com/).
 
 ## What it does
 
 Mathematical documents written in LaTeX are structured around named environments — `theorem`, `lemma`, `definition`, `proof`, and so on. This server parses those documents, recognizes that structure, embeds each block using a pair of neural models (one for multilingual prose, one for mathematical notation), and stores everything in a local [ChromaDB](https://www.trychroma.com/) vector database.
 
-Once indexed, you can ask Perplexity questions like:
+Once indexed, you can ask your AI assistant questions like:
 
 - *"Read all math documents in folder `/Users/me/papers`"*
 - *"Search the definition of uniform continuity"*
@@ -31,6 +31,7 @@ pylatexenc parser
 Two embedding models (Apple Silicon / MPS)
     ├── intfloat/multilingual-e5-large-instruct  → prose + Japanese
     └── witiko/mathberta                          → LaTeX math notation
+    │   (blocks > 512 tokens are split at natural boundaries before embedding)
     │
     ▼
 ChromaDB (local persistent store)
@@ -47,7 +48,6 @@ Query routing (automatic)
 
 - macOS with Apple Silicon
 - [uv](https://docs.astral.sh/uv/)
-- [Perplexity Mac app](https://perplexity.ai)
 
 ## Installation
 
@@ -59,7 +59,7 @@ uv pip install -e .
 
 The two embedding models (~1 GB total) are downloaded from Hugging Face on the first `index_folder` call and cached in `~/.cache/huggingface/hub/`.
 
-## Connecting to Perplexity
+## Connecting to Perplexity Mac app
 
 In the Perplexity Mac app, open **Settings → MCP Servers** and add a new local server with:
 
@@ -70,6 +70,24 @@ In the Perplexity Mac app, open **Settings → MCP Servers** and add a new local
 ```
 
 Replace `/path/to/mcp-latex-docs` with the absolute path to your clone. Then grant Perplexity **Full Disk Access** in **System Settings → Privacy & Security → Full Disk Access** so the server can read your document folders.
+
+## Connecting to GitHub Copilot in VS Code
+
+Create (or edit) `.vscode/mcp.json` in your workspace:
+
+```json
+{
+  "servers": {
+    "mcp-latex-docs": {
+      "type": "stdio",
+      "command": "/path/to/mcp-latex-docs/.venv/bin/python3",
+      "args": ["-m", "mcp_latex_docs.server"]
+    }
+  }
+}
+```
+
+Replace `/path/to/mcp-latex-docs` with the absolute path to your clone. The server's tools then become available in Copilot Chat agent mode — you can ask Copilot to index a folder of papers and search them alongside your codebase.
 
 ## Available tools
 
@@ -89,7 +107,7 @@ Replace `/path/to/mcp-latex-docs` with the absolute path to your clone. Then gra
 ## Development
 
 ```bash
-uv run pytest          # run all tests (52 tests, no GPU required)
+uv run pytest          # run all tests (no GPU required)
 uv run python smoke_test.py   # end-to-end test with real models
 ```
 
@@ -98,7 +116,7 @@ The project follows a four-module layout:
 ```
 src/mcp_latex_docs/
 ├── parser.py    — LaTeX block extractor
-├── embedder.py  — dual-model embedder and query routing
+├── embedder.py  — dual-model embedder, block splitting, and query routing
 ├── store.py     — ChromaDB upsert, search, and ranking
 └── server.py    — MCP stdio server
 ```

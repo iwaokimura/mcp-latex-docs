@@ -21,7 +21,7 @@ Future improvements to consider, roughly in order of priority.
 
 ## Robustness
 
-- **Large file handling** — blocks longer than 512 tokens are silently truncated by the tokenizers. Detect oversized blocks and split them at sentence boundaries before embedding.
+- ~~**Large file handling** — blocks longer than 512 tokens are silently truncated by the tokenizers. Detect oversized blocks and split them at sentence boundaries before embedding.~~ ✅ Done (PR #3)
 - **Error reporting per file** — if one `.tex` file fails to parse (e.g. broken LaTeX), `index_folder` should continue with the remaining files and report which files failed in the summary.
 
 ## Testing
