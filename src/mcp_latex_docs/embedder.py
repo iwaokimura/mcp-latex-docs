@@ -12,6 +12,7 @@ Queries are routed to one or both models based on content detection.
 from __future__ import annotations
 
 import re
+import warnings
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Sequence
@@ -130,7 +131,7 @@ def _greedy_pack_tokens(
 
     for part in parts:
         candidate = sep.join(current + [part]) if current else part
-        if len(tok.encode(candidate, add_special_tokens=True)) <= max_tokens:
+        if _count_mb_tokens(tok, candidate) <= max_tokens:
             current.append(part)
         else:
             if current:
@@ -141,6 +142,13 @@ def _greedy_pack_tokens(
         chunks.append(sep.join(current))
 
     return chunks or [sep.join(parts)]
+
+
+def _count_mb_tokens(tok: AutoTokenizer, text: str) -> int:
+    """Count mathberta tokens without triggering the long-sequence warning."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return len(tok.encode(text, add_special_tokens=True))
 
 
 def _split_text_for_mb(
@@ -154,7 +162,7 @@ def _split_text_for_mb(
     punctuation, then arbitrary whitespace.  Falls back to a hard split by
     token IDs if no boundary produces small-enough pieces.
     """
-    if len(tok.encode(text, add_special_tokens=True)) <= max_tokens:
+    if _count_mb_tokens(tok, text) <= max_tokens:
         return [text]
 
     for pattern, sep in [
@@ -171,7 +179,9 @@ def _split_text_for_mb(
             return result
 
     # Absolute fallback: hard-split by token IDs.
-    ids = tok.encode(text, add_special_tokens=False)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        ids = tok.encode(text, add_special_tokens=False)
     mid = len(ids) // 2
     return [
         tok.decode(ids[:mid]),
