@@ -55,9 +55,115 @@ closed and bounded.
 \end{theorem}
 
 \begin{proof}
-This is the Heine--Borel theorem. The proof proceeds by showing that
-closed and bounded subsets of $\mathbb{R}^n$ satisfy the finite subcover
-property using the completeness of $\mathbb{R}$.
+We prove both directions separately.
+
+\medskip
+\noindent\textbf{($\Rightarrow$) Compact implies closed and bounded.}
+
+\smallskip
+\textit{Boundedness.}
+Consider the open cover $\{ B(\mathbf{0}, m) \}_{m=1}^{\infty}$ of
+$\mathbb{R}^n$, where $B(\mathbf{0}, m)$ denotes the open ball of radius
+$m$ centred at the origin.  Restricting to $K$ gives an open cover of $K$.
+By compactness there is a finite subcover
+$B(\mathbf{0}, m_1), \dots, B(\mathbf{0}, m_k)$.
+Setting $M = \max\{m_1, \dots, m_k\}$ we obtain $K \subseteq B(\mathbf{0}, M)$,
+so $K$ is bounded.
+
+\smallskip
+\textit{Closedness.}
+We show that $\mathbb{R}^n \setminus K$ is open.
+Let $\mathbf{x} \in \mathbb{R}^n \setminus K$ be arbitrary.
+For each $\mathbf{y} \in K$, let $r_{\mathbf{y}} = \tfrac{1}{2}
+\|\mathbf{x} - \mathbf{y}\| > 0$ and define open balls
+\[
+    U_{\mathbf{y}} = B\!\left(\mathbf{y},\, r_{\mathbf{y}}\right),
+    \qquad
+    V_{\mathbf{y}} = B\!\left(\mathbf{x},\, r_{\mathbf{y}}\right).
+\]
+The triangle inequality ensures $U_{\mathbf{y}} \cap V_{\mathbf{y}} = \emptyset$
+for every $\mathbf{y}$.
+The family $\{U_{\mathbf{y}}\}_{\mathbf{y} \in K}$ is an open cover of $K$,
+so by compactness it has a finite subcover
+$U_{\mathbf{y}_1}, \dots, U_{\mathbf{y}_m}$.
+Set
+\[
+    V = \bigcap_{i=1}^{m} V_{\mathbf{y}_i},
+\]
+which is a finite intersection of open balls containing $\mathbf{x}$,
+hence itself an open neighbourhood of $\mathbf{x}$.
+For any $\mathbf{z} \in V$ and any $i$, we have
+$\mathbf{z} \in V_{\mathbf{y}_i}$ and $V_{\mathbf{y}_i} \cap U_{\mathbf{y}_i} = \emptyset$,
+so $\mathbf{z} \notin U_{\mathbf{y}_i}$.
+But every point of $K$ lies in some $U_{\mathbf{y}_i}$, so $\mathbf{z} \notin K$.
+Thus $V \subseteq \mathbb{R}^n \setminus K$, proving $\mathbb{R}^n \setminus K$
+is open.
+
+\medskip
+\noindent\textbf{($\Leftarrow$) Closed and bounded implies compact.}
+
+\smallskip
+\textit{Step 1: Every closed bounded interval $[a, b] \subset \mathbb{R}$ is compact.}
+
+Suppose for contradiction that $\mathcal{U} = \{U_\alpha\}_{\alpha \in A}$ is an
+open cover of $[a, b]$ that admits no finite subcover.
+Set $I_0 = [a, b]$ and $c_0 = (a+b)/2$.
+At least one of $[a, c_0]$ or $[c_0, b]$ cannot be covered by finitely many
+members of $\mathcal{U}$; call it $I_1 = [a_1, b_1]$.
+Repeat: bisect $I_1$ and choose the half that has no finite subcover, calling
+it $I_2 = [a_2, b_2]$.
+Continuing inductively we obtain a nested sequence of closed intervals
+\[
+    I_0 \supseteq I_1 \supseteq I_2 \supseteq \cdots,
+    \qquad |I_k| = \frac{b-a}{2^k},
+\]
+each of which has no finite subcover from $\mathcal{U}$.
+The sequence of left endpoints $(a_k)$ is increasing and bounded above by
+$b$, so it converges to some $c \in [a, b]$ by the completeness of
+$\mathbb{R}$.
+Similarly the right endpoints satisfy $b_k \to c$.
+Since $c \in [a, b]$, there exists some $U_{\alpha_0} \in \mathcal{U}$
+with $c \in U_{\alpha_0}$.
+As $U_{\alpha_0}$ is open, there exists $\varepsilon > 0$ such that
+$(c - \varepsilon, c + \varepsilon) \subseteq U_{\alpha_0}$.
+Choose $k$ large enough that $|I_k| = (b-a)/2^k < \varepsilon/2$ and
+$|c - a_k| < \varepsilon/2$.
+Then $I_k \subseteq (c - \varepsilon, c + \varepsilon) \subseteq U_{\alpha_0}$,
+contradicting the construction that $I_k$ has no finite subcover.
+Hence $[a, b]$ is compact.
+
+\smallskip
+\textit{Step 2: Every closed box $[-M, M]^n \subset \mathbb{R}^n$ is compact.}
+
+Let $\mathcal{U}$ be an open cover of $Q_0 = [-M, M]^n$.
+If $Q_0$ has no finite subcover, subdivide it into $2^n$ equal sub-boxes
+by bisecting each coordinate interval.
+At least one sub-box $Q_1$ has no finite subcover; otherwise finitely many
+boxes (each with a finite subcover) would cover $Q_0$.
+Continue inductively: at stage $k$ subdivide $Q_{k-1}$ into $2^n$ equal
+sub-boxes and select $Q_k$ admitting no finite subcover.
+The diameters satisfy $\operatorname{diam}(Q_k) = \sqrt{n}\,M/2^{k-1} \to 0$.
+By the completeness of $\mathbb{R}^n$ and the finite intersection property
+for closed sets, $\bigcap_{k=0}^\infty Q_k = \{\mathbf{c}\}$ for some
+$\mathbf{c} \in Q_0$.
+Choose $U_{\alpha_0} \in \mathcal{U}$ with $\mathbf{c} \in U_{\alpha_0}$ and
+$\varepsilon > 0$ with $B(\mathbf{c}, \varepsilon) \subseteq U_{\alpha_0}$.
+For all sufficiently large $k$ we have
+$Q_k \subseteq B(\mathbf{c}, \varepsilon) \subseteq U_{\alpha_0}$,
+contradicting the choice of $Q_k$.
+Hence $Q_0$ is compact.
+
+\smallskip
+\textit{Step 3: Conclusion.}
+
+Since $K$ is bounded, there exists $M > 0$ such that
+$K \subseteq [-M, M]^n$.
+The box $[-M, M]^n$ is compact by Step~2.
+A closed subset of a compact set is compact: if $\mathcal{U}$ is an open
+cover of $K$, then $\mathcal{U} \cup \{\mathbb{R}^n \setminus K\}$ is an open
+cover of $[-M, M]^n$; a finite subcover of $[-M, M]^n$ restricted to $K$
+(discarding $\mathbb{R}^n \setminus K$) yields a finite subcover of $K$.
+Hence $K$ is compact.
 \end{proof}
 
 \begin{corollary}\label{cor:compact-continuous}

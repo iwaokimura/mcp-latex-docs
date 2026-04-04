@@ -12,6 +12,7 @@ Queries are routed to one or both models based on content detection.
 from __future__ import annotations
 
 import re
+import warnings
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Sequence
@@ -91,6 +92,7 @@ class BlockEmbedding:
     block_id:   str
     text_vec:   list[float]   # from multilingual-e5
     math_vec:   list[float]   # from mathberta
+    text:       str = ""      # sub-block text; empty string means use original block text
 
 
 @dataclass
@@ -108,6 +110,83 @@ class QueryEmbedding:
 _E5_TASK = (
     "Retrieve relevant mathematical theorems, definitions, lemmas, or proofs"
 )
+
+# mathberta's nominal context window; leave a small margin for CLS / SEP tokens.
+_MB_MAX_TOKENS = 500
+
+
+# ---------------------------------------------------------------------------
+# Block-splitting helpers
+# ---------------------------------------------------------------------------
+
+def _greedy_pack_tokens(
+    tok: AutoTokenizer,
+    parts: list[str],
+    sep: str,
+    max_tokens: int,
+) -> list[str]:
+    """Greedily join *parts* (separated by *sep*) into chunks ≤ *max_tokens*."""
+    chunks: list[str] = []
+    current: list[str] = []
+
+    for part in parts:
+        candidate = sep.join(current + [part]) if current else part
+        if _count_mb_tokens(tok, candidate) <= max_tokens:
+            current.append(part)
+        else:
+            if current:
+                chunks.append(sep.join(current))
+            current = [part]
+
+    if current:
+        chunks.append(sep.join(current))
+
+    return chunks or [sep.join(parts)]
+
+
+def _count_mb_tokens(tok: AutoTokenizer, text: str) -> int:
+    """Count mathberta tokens without triggering the long-sequence warning."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return len(tok.encode(text, add_special_tokens=True))
+
+
+def _split_text_for_mb(
+    tok: AutoTokenizer,
+    text: str,
+    max_tokens: int = _MB_MAX_TOKENS,
+) -> list[str]:
+    """Split *text* into chunks ≤ *max_tokens* mathberta tokens.
+
+    Tries natural boundaries in order: paragraphs (\\n\\n), sentence-ending
+    punctuation, then arbitrary whitespace.  Falls back to a hard split by
+    token IDs if no boundary produces small-enough pieces.
+    """
+    if _count_mb_tokens(tok, text) <= max_tokens:
+        return [text]
+
+    for pattern, sep in [
+        (r"\n{2,}", "\n\n"),
+        (r"(?<=[.?!])\s+", " "),
+        (r"\s+", " "),
+    ]:
+        parts = re.split(pattern, text.strip())
+        if len(parts) > 1:
+            packed = _greedy_pack_tokens(tok, parts, sep, max_tokens)
+            result: list[str] = []
+            for chunk in packed:
+                result.extend(_split_text_for_mb(tok, chunk, max_tokens))
+            return result
+
+    # Absolute fallback: hard-split by token IDs.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        ids = tok.encode(text, add_special_tokens=False)
+    mid = len(ids) // 2
+    return [
+        tok.decode(ids[:mid]),
+        tok.decode(ids[mid:]),
+    ]
 
 
 class Embedder:
@@ -183,21 +262,42 @@ class Embedder:
     # ------------------------------------------------------------------
 
     def embed_blocks(self, blocks: Sequence[Block]) -> list[BlockEmbedding]:
-        """Embed a list of blocks with both models."""
+        """Embed a list of blocks with both models.
+
+        Blocks whose text exceeds mathberta's 512-token limit are split at
+        natural boundaries (paragraphs, then sentences).  Each part receives
+        its own ``BlockEmbedding`` with an ID of the form
+        ``<block_id>::part<N>``.
+        """
         if not blocks:
             return []
 
-        texts = [b.text for b in blocks]
-        text_vecs = self._encode_e5_docs(texts)
-        math_vecs = self._encode_mathberta(texts)
+        tok, _ = self._load_mathberta()
+
+        # Expand each block into (embedding_id, text) pairs, splitting if needed.
+        pairs: list[tuple[str, str]] = []   # (block_id, text)
+        for b in blocks:
+            parts = _split_text_for_mb(tok, b.text)
+            if len(parts) == 1:
+                pairs.append((b.block_id, b.text))
+            else:
+                pairs.extend(
+                    (f"{b.block_id}::part{i}", chunk)
+                    for i, chunk in enumerate(parts)
+                )
+
+        all_texts = [t for _, t in pairs]
+        text_vecs = self._encode_e5_docs(all_texts)
+        math_vecs = self._encode_mathberta(all_texts)
 
         return [
             BlockEmbedding(
-                block_id=b.block_id,
+                block_id=bid,
                 text_vec=text_vecs[i],
                 math_vec=math_vecs[i],
+                text=txt,
             )
-            for i, b in enumerate(blocks)
+            for i, (bid, txt) in enumerate(pairs)
         ]
 
     def embed_query(self, query: str) -> QueryEmbedding:
